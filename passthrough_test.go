@@ -65,6 +65,46 @@ func TestPassthroughBackend_Write(t *testing.T) {
 	test(b)
 }
 
+func TestPassthroughBackend_Create(t *testing.T) {
+	test := func(b logical.Backend) {
+		req := logical.TestRequest(t, logical.CreateOperation, "foo")
+		req.Data["raw"] = "test"
+
+		resp, err := b.HandleRequest(context.Background(), req)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if resp != nil {
+			t.Fatalf("bad: %v", resp)
+		}
+
+		out, err := req.Storage.Get(context.Background(), "foo")
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if out == nil {
+			t.Fatalf("failed to write to view")
+		}
+
+		req.Data["raw"] = "rtest"
+
+		resp, err = b.HandleRequest(context.Background(), req)
+
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if !resp.IsError() {
+			t.Fatalf("Should be logical error")
+		}
+
+	}
+	b := testPassthroughBackend()
+	test(b)
+	b = testPassthroughLeasedBackend()
+	test(b)
+}
+
 func TestPassthroughBackend_Read(t *testing.T) {
 	test := func(b logical.Backend, ttlType string, ttl interface{}, leased bool) {
 		req := logical.TestRequest(t, logical.UpdateOperation, "foo")
